@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Покорми Джуну!</title>
-    <script src="https://telegram.org"></script>
     <style>
         * { box-sizing: border-box; user-select: none; }
         body, html {
@@ -66,11 +65,23 @@
 </div>
 
 <script>
-    // Безопасное подключение к Telegram, которое не ломает браузер на ПК
-    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    // Изолируем Telegram-логику, чтобы она вообще никак не влияла на запуск игры
+    let tg = null;
+    try {
+        if (window.parent && window.parent.Telegram && window.parent.Telegram.WebApp) {
+            tg = window.parent.Telegram.WebApp;
+        } else if (window.Telegram && window.Telegram.WebApp) {
+            tg = window.Telegram.WebApp;
+        }
+    } catch (e) {
+        console.log("Локальный запуск без Telegram API");
+    }
+
     if (tg) {
-        tg.ready();
-        tg.expand();
+        try {
+            tg.ready();
+            tg.expand();
+        } catch(e) {}
     }
 
     const dog = document.getElementById('dog');
@@ -82,7 +93,6 @@
     const targetScore = 40;
     let isGameOver = false;
 
-    // Функция движения (работает по координате X)
     function moveDog(clientX) {
         if (isGameOver) return;
         let newX = clientX;
@@ -91,19 +101,16 @@
         dog.style.left = newX + 'px';
     }
 
-    // Слушатель для телефона (палец)
     container.addEventListener('touchmove', (e) => {
         if(e.touches && e.touches[0]) {
             moveDog(e.touches[0].clientX);
         }
     });
 
-    // Слушатель для ПК (мышка)
     container.addEventListener('mousemove', (e) => {
         moveDog(e.clientX);
     });
 
-    // Набор падающих предметов
     const itemsData = [
         { emoji: '🦴', points: 1 },
         { emoji: '🥩', points: 2 },
@@ -151,7 +158,9 @@
                 scoreDisplay.textContent = score;
                 
                 if (tg && tg.HapticFeedback) {
-                    tg.HapticFeedback.impactOccurred(parseInt(item.dataset.points) > 0 ? 'medium' : 'heavy');
+                    try {
+                        tg.HapticFeedback.impactOccurred(parseInt(item.dataset.points) > 0 ? 'medium' : 'heavy');
+                    } catch(e) {}
                 }
 
                 item.remove();
@@ -171,7 +180,6 @@
         requestAnimationFrame(fall);
     }
 
-    // Интервал спавна вкусняшек
     const spawnInterval = setInterval(createItem, 750);
 
     function triggerWin() {
