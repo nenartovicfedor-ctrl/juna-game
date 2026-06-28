@@ -57,7 +57,7 @@
 <div id="game-container">
     <div id="score-board">🍗 Очки: <span id="score">0</span> / 40</div>
     <img id="dog" src="dog.jpg" alt="Джуна">
-
+    
     <div id="win-screen">
         <div class="heart">❤️</div>
         <h1>Ты супер!</h1>
@@ -66,9 +66,12 @@
 </div>
 
 <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+    // Безопасное подключение к Telegram, которое не ломает браузер на ПК
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg) {
+        tg.ready();
+        tg.expand();
+    }
 
     const dog = document.getElementById('dog');
     const container = document.getElementById('game-container');
@@ -79,7 +82,7 @@
     const targetScore = 40;
     let isGameOver = false;
 
-    // Универсальное перемещение (и для мышки на ПК, и для пальца на телефоне)
+    // Функция движения (работает по координате X)
     function moveDog(clientX) {
         if (isGameOver) return;
         let newX = clientX;
@@ -88,15 +91,19 @@
         dog.style.left = newX + 'px';
     }
 
+    // Слушатель для телефона (палец)
     container.addEventListener('touchmove', (e) => {
-        moveDog(e.touches[0].clientX);
+        if(e.touches && e.touches[0]) {
+            moveDog(e.touches[0].clientX);
+        }
     });
 
+    // Слушатель для ПК (мышка)
     container.addEventListener('mousemove', (e) => {
         moveDog(e.clientX);
     });
 
-    // Исправленный чистый массив предметов без багов
+    // Набор падающих предметов
     const itemsData = [
         { emoji: '🦴', points: 1 },
         { emoji: '🥩', points: 2 },
@@ -110,7 +117,7 @@
 
         const item = document.createElement('div');
         item.classList.add('item');
-
+        
         const randomItem = itemsData[Math.floor(Math.random() * itemsData.length)];
         item.textContent = randomItem.emoji;
         item.dataset.points = randomItem.points;
@@ -120,7 +127,7 @@
         container.appendChild(item);
 
         let topPos = -50;
-        const speed = 3 + Math.random() * 3;
+        const speed = 3 + Math.random() * 3; 
 
         function fall() {
             if (isGameOver) {
@@ -142,8 +149,8 @@
                 score += parseInt(item.dataset.points);
                 if (score < 0) score = 0;
                 scoreDisplay.textContent = score;
-
-                if (tg.HapticFeedback) {
+                
+                if (tg && tg.HapticFeedback) {
                     tg.HapticFeedback.impactOccurred(parseInt(item.dataset.points) > 0 ? 'medium' : 'heavy');
                 }
 
@@ -164,8 +171,8 @@
         requestAnimationFrame(fall);
     }
 
-    // Запуск бесконечного цикла падения еды
-    const spawnInterval = setInterval(createItem, 800);
+    // Интервал спавна вкусняшек
+    const spawnInterval = setInterval(createItem, 750);
 
     function triggerWin() {
         isGameOver = true;
