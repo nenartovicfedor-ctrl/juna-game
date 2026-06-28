@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Покорми песика!</title>
+    <script src="https://telegram.org"></script>
+    <style>
+        * { box-sizing: border-box; user-select: none; }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; font-family: 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(180deg, #a1c4fd 0%, #c2e9fb 100%);
+        }
+        #game-container { position: relative; width: 100%; height: 100%; }
+        #score-board {
+            position: absolute; top: 20px; left: 20px;
+            font-size: 22px; font-weight: bold; color: #2c3e50;
+            background: rgba(255,255,255,0.7); padding: 8px 15px; border-radius: 20px;
+        }
+        #dog {
+            position: absolute; bottom: 30px; left: 50%;
+            width: 90px; height: 90px;
+            transform: translateX(-50%);
+            touch-action: none;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+            object-fit: cover;
+        }
+        .item {
+            position: absolute; font-size: 35px;
+            width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #win-screen {
+            display: none; position: absolute; inset: 0;
+            background: rgba(255, 255, 255, 0.95);
+            flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 30px; color: #2c3e50;
+        }
+        #win-screen h1 { color: #e74c3c; font-size: 28px; margin-bottom: 10px; }
+        #win-screen p { font-size: 18px; line-height: 1.5; }
+        .heart { font-size: 50px; animation: heartbeat 1.2s infinite; }
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="score-board">🍗 Очки: <span id="score">0</span> / 40</div>
+
+    <!-- Картинка Джуны -->
+    <img id="dog" src="dog.jpg" alt="Dog">
+
+    <div id="win-screen">
+        <div class="heart">❤️</div>
+        <h1>Ты супер!</h1>
+        <p>Ты собрала все вкусняшки!<br>Ты такая же замечательная, заботливая и прекрасная, как и твоя Джуна. Спасибо, что ты есть! 🥰</p>
+    </div>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    const dog = document.getElementById('dog');
+    const container = document.getElementById('game-container');
+    const scoreDisplay = document.getElementById('score');
+    const winScreen = document.getElementById('win-screen');
+
+    let score = 0;
+    const targetScore = 40;
+    let isGameOver = false;
+
+    container.addEventListener('touchmove', (e) => {
+        if (isGameOver) return;
+        const touch = e.touches[0];
+        let newX = touch.clientX;
+
+        if (newX < 45) newX = 45;
+        if (newX > window.innerWidth - 45) newX = window.innerWidth - 45;
+
+        dog.style.left = newX + 'px';
+    });
+
+    const itemsData = [
+        { emoji: '🦴', points: 1 },
+        { emoji: '🥩', points: 2 },
+        { emoji: 'Bконфета', points: 1 },
+        { emoji: '👟', points: -2 },
+        { emoji: '🐝', points: -3 }
+    ];
+
+    function createItem() {
+        if (isGameOver) return;
+
+        const item = document.createElement('div');
+        item.classList.add('item');
+
+        const randomItem = itemsData[Math.floor(Math.random() * itemsData.length)];
+        item.textContent = randomItem.emoji === 'Bконфета' ? '🥓' : randomItem.emoji;
+        item.dataset.points = randomItem.points;
+
+        item.style.left = Math.random() * (window.innerWidth - 40) + 'px';
+        item.style.top = '-50px';
+        container.appendChild(item);
+
+        let topPos = -50;
+        const speed = 4 + Math.random() * 4;
+
+        function fall() {
+            if (isGameOver) {
+                item.remove();
+                return;
+            }
+            topPos += speed;
+            item.style.top = topPos + 'px';
+
+            const dogRect = dog.getBoundingClientRect();
+            const itemRect = item.getBoundingClientRect();
+
+            if (
+                itemRect.bottom >= dogRect.top &&
+                itemRect.top <= dogRect.bottom &&
+                itemRect.right >= dogRect.left &&
+                itemRect.left <= dogRect.right
+            ) {
+                score += parseInt(item.dataset.points);
+                if (score < 0) score = 0;
+                scoreDisplay.textContent = score;
+
+                if (tg.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred(parseInt(item.dataset.points) > 0 ? 'medium' : 'heavy');
+                }
+
+                item.remove();
+
+                if (score >= targetScore) {
+                    triggerWin();
+                }
+                return;
+            }
+
+            if (topPos > window.innerHeight) {
+                item.remove();
+            } else {
+                requestAnimationFrame(fall);
+            }
+        }
+        requestAnimationFrame(fall);
+    }
+
+    const spawnInterval = setInterval(createItem, 700);
+
+    function triggerWin() {
+        isGameOver = true;
+        clearInterval(spawnInterval);
+        winScreen.style.display = 'flex';
+    }
+</script>
+</body>
+</html>
