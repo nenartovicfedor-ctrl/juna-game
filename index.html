@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Покорми песика!</title>
+    <title>Покорми Джуну!</title>
     <script src="https://telegram.org"></script>
     <style>
         * { box-sizing: border-box; user-select: none; }
@@ -17,6 +17,7 @@
             position: absolute; top: 20px; left: 20px;
             font-size: 22px; font-weight: bold; color: #2c3e50;
             background: rgba(255,255,255,0.7); padding: 8px 15px; border-radius: 20px;
+            z-index: 10;
         }
         #dog {
             position: absolute; bottom: 30px; left: 50%;
@@ -27,6 +28,7 @@
             border: 3px solid white;
             box-shadow: 0 8px 15px rgba(0,0,0,0.2);
             object-fit: cover;
+            z-index: 5;
         }
         .item {
             position: absolute; font-size: 35px;
@@ -38,6 +40,7 @@
             background: rgba(255, 255, 255, 0.95);
             flex-direction: column; align-items: center; justify-content: center;
             text-align: center; padding: 30px; color: #2c3e50;
+            z-index: 20;
         }
         #win-screen h1 { color: #e74c3c; font-size: 28px; margin-bottom: 10px; }
         #win-screen p { font-size: 18px; line-height: 1.5; }
@@ -53,9 +56,7 @@
 
 <div id="game-container">
     <div id="score-board">🍗 Очки: <span id="score">0</span> / 40</div>
-
-    <!-- Картинка Джуны -->
-    <img id="dog" src="dog.jpg" alt="Dog">
+    <img id="dog" src="dog.jpg" alt="Джуна">
 
     <div id="win-screen">
         <div class="heart">❤️</div>
@@ -78,21 +79,28 @@
     const targetScore = 40;
     let isGameOver = false;
 
-    container.addEventListener('touchmove', (e) => {
+    // Универсальное перемещение (и для мышки на ПК, и для пальца на телефоне)
+    function moveDog(clientX) {
         if (isGameOver) return;
-        const touch = e.touches[0];
-        let newX = touch.clientX;
-
+        let newX = clientX;
         if (newX < 45) newX = 45;
         if (newX > window.innerWidth - 45) newX = window.innerWidth - 45;
-
         dog.style.left = newX + 'px';
+    }
+
+    container.addEventListener('touchmove', (e) => {
+        moveDog(e.touches[0].clientX);
     });
 
+    container.addEventListener('mousemove', (e) => {
+        moveDog(e.clientX);
+    });
+
+    // Исправленный чистый массив предметов без багов
     const itemsData = [
         { emoji: '🦴', points: 1 },
         { emoji: '🥩', points: 2 },
-        { emoji: 'Bконфета', points: 1 },
+        { emoji: '🥓', points: 1 },
         { emoji: '👟', points: -2 },
         { emoji: '🐝', points: -3 }
     ];
@@ -104,7 +112,7 @@
         item.classList.add('item');
 
         const randomItem = itemsData[Math.floor(Math.random() * itemsData.length)];
-        item.textContent = randomItem.emoji === 'Bконфета' ? '🥓' : randomItem.emoji;
+        item.textContent = randomItem.emoji;
         item.dataset.points = randomItem.points;
 
         item.style.left = Math.random() * (window.innerWidth - 40) + 'px';
@@ -112,7 +120,7 @@
         container.appendChild(item);
 
         let topPos = -50;
-        const speed = 4 + Math.random() * 4;
+        const speed = 3 + Math.random() * 3;
 
         function fall() {
             if (isGameOver) {
@@ -156,7 +164,8 @@
         requestAnimationFrame(fall);
     }
 
-    const spawnInterval = setInterval(createItem, 700);
+    // Запуск бесконечного цикла падения еды
+    const spawnInterval = setInterval(createItem, 800);
 
     function triggerWin() {
         isGameOver = true;
